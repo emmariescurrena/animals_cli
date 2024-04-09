@@ -1,0 +1,1 @@
+/home/emmanuel/no-borrar/repos/mi-vault/programming/blockchain_development/rust/projects/animals_cli/target/debug/animals_cli: /home/emmanuel/no-borrar/repos/mi-vault/programming/blockchain_development/rust/projects/animals_cli/src/lib.rs /home/emmanuel/no-borrar/repos/mi-vault/programming/blockchain_development/rust/projects/animals_cli/src/main.rs
