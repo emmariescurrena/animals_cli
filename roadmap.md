@@ -10,7 +10,7 @@
   - Born x
   - Eat x
   - Reproduce
-- Write and read to json file
+- Write and read to csv file
 
 Useful resources:
 https://stackoverflow.com/questions/62771576/how-do-i-save-structured-data-to-file
