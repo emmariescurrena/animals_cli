@@ -1,5 +1,7 @@
-pub mod animals_csv;
+use animals_cli::console_reader::read_command;
+use std::error::Error;
 
-use animals_csv::*;
-
-fn main() {}
+fn main() -> Result<(), Box<dyn Error>> {
+    read_command()?;
+    Ok(())
+}
