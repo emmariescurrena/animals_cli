@@ -1,5 +1,3 @@
-// use rand::Rng;
-
 pub trait Logger {
     fn log(&mut self, value: String);
 }
@@ -36,10 +34,10 @@ pub enum Sex {
 
 #[derive(PartialEq, Debug)]
 pub struct AnimalData {
-    name: String,
-    class: Class,
-    predators: Vec<String>,
-    preys: Vec<String>,
+    pub name: String,
+    pub class: Class,
+    pub predators: Vec<String>,
+    pub preys: Vec<String>,
 }
 
 impl AnimalData {
@@ -124,13 +122,6 @@ impl AnimalAlive {
             sex,
         }
     }
-
-    /* pub fn eat(&self, logger: &mut dyn Logger) {
-        let mut rng = rand::thread_rng();
-        let prey = &self.preys()[rng.gen_range(0..self.preys.len())];
-        logger.log(format!("{} found a {} and eated it!", self.name(), prey));
-    }
-    */
 }
 
 #[cfg(test)]

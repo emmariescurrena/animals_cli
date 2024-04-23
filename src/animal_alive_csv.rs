@@ -1,9 +1,13 @@
 extern crate csv;
-use crate::animal_structs::*;
-use crate::custom_writer::CustomWriter;
 use csv::Position;
+use rand::prelude::{thread_rng, SliceRandom};
 use std::error::Error;
+use std::fs::File;
 use std::io;
+
+use crate::animal_structs::*;
+use crate::common_paths::ANIMALS_ALIVE_FILE_PATH;
+use crate::file_handler::*;
 
 impl AnimalAlive {
     pub fn to_alive_csv(&self) -> [String; 2] {
@@ -12,19 +16,28 @@ impl AnimalAlive {
 }
 
 impl<W: io::Write> CustomWriter<W> {
-    pub fn write_animal_alive_file(&mut self, animal: AnimalAlive) -> csv::Result<()> {
+    pub fn write_animal_alive(&mut self, animal: AnimalAlive) -> csv::Result<()> {
         self.inner.write_record(animal.to_alive_csv())
+    }
+    pub fn kill_animal(&mut self, name: &str) -> Result<(), Box<dyn Error>> {
+        let animals_file_read = File::open(ANIMALS_ALIVE_FILE_PATH)?;
+        let mut reader = csv::Reader::from_reader(animals_file_read);
+
+        let temp = File::create("temp.csv")?;
+        let mut writer = csv::Reader::from_reader(temp);
+
+        Ok(())
     }
 }
 
-pub trait AnimalReader {
+pub trait AnimalAliveReader {
     fn read_animal_alive(&mut self, name: &str) -> Result<Option<AnimalAlive>, Box<dyn Error>>;
     fn has_both_sexes(&mut self, name: &str) -> Result<bool, Box<dyn Error>>;
     fn count_animal(&mut self, name: &str) -> Result<i32, Box<dyn Error>>;
-    fn animal_alive_in_file(&mut self, name: &str) -> Result<bool, Box<dyn Error>>;
+    fn animal_alive(&mut self, name: &str) -> Result<bool, Box<dyn Error>>;
 }
 
-impl<R: std::io::Read + std::io::Seek> AnimalReader for csv::Reader<R> {
+impl<R: std::io::Read + std::io::Seek> AnimalAliveReader for csv::Reader<R> {
     fn read_animal_alive(&mut self, name: &str) -> Result<Option<AnimalAlive>, Box<dyn Error>> {
         for result in self.records() {
             let record = result?;
@@ -72,13 +85,21 @@ impl<R: std::io::Read + std::io::Seek> AnimalReader for csv::Reader<R> {
         }
         Ok(count)
     }
-    fn animal_alive_in_file(&mut self, name: &str) -> Result<bool, Box<dyn Error>> {
+    fn animal_alive(&mut self, name: &str) -> Result<bool, Box<dyn Error>> {
         if let Some(_animal) = self.read_animal_alive(name)? {
             Ok(true)
         } else {
             Ok(false)
         }
     }
+}
+
+fn writer_animals_alive() -> Result<CustomWriter<File>, Box<dyn Error>> {
+    create_writer_append_for_path(ANIMALS_ALIVE_FILE_PATH)
+}
+
+fn reader_animals_alive() -> Result<csv::Reader<File>, Box<dyn Error>> {
+    create_reader_for_path(ANIMALS_ALIVE_FILE_PATH)
 }
 
 #[cfg(test)]
@@ -90,12 +111,18 @@ mod tests {
 
     const TEST_ANIMALS_ALIVE_FILE_PATH: &str = "test_animals_alive.csv";
 
+    fn writer_test_animals_alive() -> Result<CustomWriter<File>, Box<dyn Error>> {
+        create_writer_append_for_path(TEST_ANIMALS_ALIVE_FILE_PATH)
+    }
+
+    fn reader_test_animals_alive() -> Result<csv::Reader<File>, Box<dyn Error>> {
+        create_reader_for_path(TEST_ANIMALS_ALIVE_FILE_PATH)
+    }
+
     fn create_test_animals_csv() -> Result<(), Box<dyn Error>> {
         File::create(TEST_ANIMALS_ALIVE_FILE_PATH)?;
 
-        let animals_file_write = animals_file_write_truncate(TEST_ANIMALS_ALIVE_FILE_PATH)?;
-
-        let mut writer = CustomWriter::new(csv::Writer::from_writer(animals_file_write));
+        let mut writer = create_writer_truncate_for_path(TEST_ANIMALS_ALIVE_FILE_PATH)?;
 
         writer.inner.write_record(&["name", "sex"])?;
         writer.flush()?;
@@ -106,9 +133,7 @@ mod tests {
     #[test]
     fn test_create_csv_for_testing() -> Result<(), Box<dyn Error>> {
         create_test_animals_csv()?;
-        let animals_file_read = File::open(TEST_ANIMALS_ALIVE_FILE_PATH)?;
-
-        let mut reader = csv::Reader::from_reader(animals_file_read);
+        let mut reader = reader_test_animals_alive()?;
 
         for result in reader.records() {
             let record = result?;
@@ -117,26 +142,31 @@ mod tests {
         Ok(())
     }
 
+    fn snake_female_born() -> AnimalAlive {
+        AnimalAlive::born("snake", Sex::Female)
+    }
+    fn snake_male_born() -> AnimalAlive {
+        AnimalAlive::born("snake", Sex::Male)
+    }
+    fn chameleon_male_born() -> AnimalAlive {
+        AnimalAlive::born("chameleon", Sex::Male)
+    }
+
     #[test]
     fn test_has_both_sexes() -> Result<(), Box<dyn Error>> {
         create_test_animals_csv()?;
-        let animals_file_write = animals_file_write_append(TEST_ANIMALS_ALIVE_FILE_PATH)?;
 
-        let mut writer = CustomWriter::new(csv::Writer::from_writer(animals_file_write));
+        let mut writer = writer_test_animals_alive()?;
 
-        writer.write_animal_alive_file(AnimalAlive::born("snake", Sex::Female))?;
-        writer.write_animal_alive_file(AnimalAlive::born("snake", Sex::Male))?;
-        writer.write_animal_alive_file(AnimalAlive::born("chameleon", Sex::Male))?;
-        writer.write_animal_alive_file(AnimalAlive::born("chameleon", Sex::Male))?;
+        writer.write_animal_alive(snake_female_born())?;
+        writer.write_animal_alive(snake_male_born())?;
+        writer.write_animal_alive(chameleon_male_born())?;
+        writer.write_animal_alive(chameleon_male_born())?;
 
-        writer.flush()?;
-
-        let animals_file_read = File::open(TEST_ANIMALS_ALIVE_FILE_PATH)?;
-
-        let mut reader = csv::Reader::from_reader(animals_file_read);
+        let mut reader = reader_test_animals_alive()?;
 
         assert!(reader.has_both_sexes("snake").unwrap());
-        assert!(!reader.has_both_sexes("chameleon").unwrap());
+        assert!(reader.has_both_sexes("chameleon").unwrap());
 
         Ok(())
     }
@@ -145,22 +175,17 @@ mod tests {
     fn test_read_animal() -> Result<(), Box<dyn Error>> {
         create_test_animals_csv()?;
 
-        let animals_file_write = animals_file_write_append(TEST_ANIMALS_ALIVE_FILE_PATH)?;
+        let mut writer = writer_test_animals_alive()?;
 
-        let mut writer = CustomWriter::new(csv::Writer::from_writer(animals_file_write));
-        writer.write_animal_alive_file(AnimalAlive::born("snake", Sex::Female))?;
-        writer.write_animal_alive_file(AnimalAlive::born("chameleon", Sex::Male))?;
+        writer.write_animal_alive(snake_female_born())?;
+        writer.write_animal_alive(chameleon_male_born())?;
 
-        writer.flush()?;
+        let mut reader = reader_test_animals_alive()?;
 
-        let animals_file_read = File::open(TEST_ANIMALS_ALIVE_FILE_PATH)?;
-
-        let mut reader = csv::Reader::from_reader(animals_file_read);
-
-        assert!(reader.animal_alive_in_file("snake").unwrap());
-        assert!(!reader.animal_alive_in_file("cow").unwrap());
-        assert!(!reader.animal_alive_in_file("rabbit").unwrap());
-        assert!(reader.animal_alive_in_file("chameleon").unwrap());
+        assert!(reader.animal_alive("snake")?);
+        assert!(!reader.animal_alive("cow")?);
+        assert!(!reader.animal_alive("rabbit")?);
+        assert!(reader.animal_alive("chameleon")?);
         Ok(())
     }
 
@@ -168,30 +193,16 @@ mod tests {
     fn test_count_animal() -> Result<(), Box<dyn Error>> {
         create_test_animals_csv()?;
 
-        let animals_file_write = animals_file_write_append(TEST_ANIMALS_ALIVE_FILE_PATH)?;
+        let mut writer = writer_test_animals_alive()?;
 
-        let mut writer = CustomWriter::new(csv::Writer::from_writer(animals_file_write));
+        writer.write_animal_alive(snake_female_born())?;
+        writer.write_animal_alive(chameleon_male_born())?;
+        writer.write_animal_alive(chameleon_male_born())?;
+        writer.write_animal_alive(snake_female_born())?;
 
-        fn snake_born() -> AnimalAlive {
-            AnimalAlive::born("snake", Sex::Female)
-        }
-        fn chameleon_born() -> AnimalAlive {
-            AnimalAlive::born("chameleon", Sex::Female)
-        }
-
-        writer.write_animal_alive_file(snake_born())?;
-        writer.write_animal_alive_file(chameleon_born())?;
-        writer.write_animal_alive_file(chameleon_born())?;
-        writer.write_animal_alive_file(snake_born())?;
-
-        writer.flush()?;
-
-        let animals_file_read = File::open(TEST_ANIMALS_ALIVE_FILE_PATH)?;
-
-        let mut reader = csv::Reader::from_reader(animals_file_read);
-
-        let count = reader.count_animal("snake");
-        assert_eq!(count.unwrap(), 2);
+        let mut reader = reader_test_animals_alive()?;
+        let count = reader.count_animal("snake")?;
+        assert_eq!(count, 2);
         Ok(())
     }
 }

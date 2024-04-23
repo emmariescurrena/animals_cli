@@ -1,9 +1,11 @@
-use crate::animal_structs::*;
-use crate::custom_writer::CustomWriter;
-
 use csv::Position;
 use std::error::Error;
+use std::fs::File;
 use std::io;
+
+use crate::animal_structs::*;
+use crate::common_paths::ANIMALS_DATA_FILE_PATH;
+use crate::file_handler::*;
 
 impl AnimalData {
     pub fn to_data_csv(&self) -> [String; 4] {
@@ -22,12 +24,12 @@ impl<W: io::Write> CustomWriter<W> {
     }
 }
 
-pub trait AnimalReader {
+pub trait AnimalDataReader {
     fn read_animal_data(&mut self, name: &str) -> Result<Option<AnimalData>, Box<dyn Error>>;
     fn animal_data_in_file(&mut self, name: &str) -> Result<bool, Box<dyn Error>>;
 }
 
-impl<R: std::io::Read + std::io::Seek> AnimalReader for csv::Reader<R> {
+impl<R: std::io::Read + std::io::Seek> AnimalDataReader for csv::Reader<R> {
     fn read_animal_data(&mut self, name: &str) -> Result<Option<AnimalData>, Box<dyn Error>> {
         for result in self.records() {
             let record = result?;
@@ -60,6 +62,14 @@ impl<R: std::io::Read + std::io::Seek> AnimalReader for csv::Reader<R> {
     }
 }
 
+fn writer_animals_data() -> Result<CustomWriter<File>, Box<dyn Error>> {
+    create_writer_append_for_path(ANIMALS_DATA_FILE_PATH)
+}
+
+fn reader_animals_data() -> Result<csv::Reader<File>, Box<dyn Error>> {
+    create_reader_for_path(ANIMALS_DATA_FILE_PATH)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -69,12 +79,18 @@ mod tests {
 
     const TEST_ANIMALS_DATA_FILE_PATH: &str = "test_animals_data.csv";
 
+    fn writer_test_animals_data() -> Result<CustomWriter<File>, Box<dyn Error>> {
+        create_writer_append_for_path(TEST_ANIMALS_DATA_FILE_PATH)
+    }
+
+    fn reader_test_animals_data() -> Result<csv::Reader<File>, Box<dyn Error>> {
+        create_reader_for_path(TEST_ANIMALS_DATA_FILE_PATH)
+    }
+
     fn create_test_animals_csv() -> Result<(), Box<dyn Error>> {
         File::create(TEST_ANIMALS_DATA_FILE_PATH)?;
 
-        let animals_file_write = animals_file_write_truncate(TEST_ANIMALS_DATA_FILE_PATH)?;
-
-        let mut writer = CustomWriter::new(csv::Writer::from_writer(animals_file_write));
+        let mut writer = create_writer_truncate_for_path(TEST_ANIMALS_DATA_FILE_PATH)?;
 
         writer
             .inner
@@ -103,9 +119,7 @@ mod tests {
     fn test_read_animal_data() -> Result<(), Box<dyn Error>> {
         create_test_animals_csv()?;
 
-        let animals_file_write = animals_file_write_append(TEST_ANIMALS_DATA_FILE_PATH)?;
-
-        let mut writer = CustomWriter::new(csv::Writer::from_writer(animals_file_write));
+        let mut writer = writer_test_animals_data()?;
         writer.write_animal_data_file(AnimalData::new(
             "snake",
             Class::Reptile,
@@ -123,12 +137,12 @@ mod tests {
 
         let animals_file_read = File::open(TEST_ANIMALS_DATA_FILE_PATH)?;
 
-        let mut reader = csv::Reader::from_reader(animals_file_read);
+        let mut reader = reader_test_animals_data()?;
 
-        assert!(reader.animal_data_in_file("snake").unwrap());
-        assert!(!reader.animal_data_in_file("cow").unwrap());
-        assert!(!reader.animal_data_in_file("rabbit").unwrap());
-        assert!(reader.animal_data_in_file("chameleon").unwrap());
+        assert!(reader.animal_data_in_file("snake")?);
+        assert!(!reader.animal_data_in_file("cow")?);
+        assert!(!reader.animal_data_in_file("rabbit")?);
+        assert!(reader.animal_data_in_file("chameleon")?);
         Ok(())
     }
 }
