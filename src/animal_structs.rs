@@ -1,15 +1,3 @@
-pub trait Logger {
-    fn log(&mut self, value: String);
-}
-
-struct ConsoleLogger;
-
-impl Logger for ConsoleLogger {
-    fn log(&mut self, value: String) {
-        println!("{}", value);
-    }
-}
-
 #[derive(PartialEq, Debug)]
 pub enum BloodType {
     Warm,
@@ -26,7 +14,7 @@ pub enum Class {
     Amphibian,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Sex {
     Male,
     Female,
@@ -41,9 +29,9 @@ pub struct AnimalData {
 }
 
 impl AnimalData {
-    pub fn new(name: &str, class: Class, predators: Vec<String>, preys: Vec<String>) -> Self {
+    pub fn new(name: String, class: Class, predators: Vec<String>, preys: Vec<String>) -> Self {
         AnimalData {
-            name: name.to_string(),
+            name,
             class,
             predators,
             preys,
@@ -93,6 +81,26 @@ impl AnimalData {
     }
 }
 
+pub mod animals_data_models {
+    use super::*;
+    pub fn snake_data() -> AnimalData {
+        AnimalData::new(
+            "snake".to_string(),
+            Class::Reptile,
+            vec![String::from("eagle"), String::from("mongoose")],
+            vec![String::from("rat"), String::from("squirrel")],
+        )
+    }
+    pub fn chameleon_data() -> AnimalData {
+        AnimalData::new(
+            "chameleon".to_string(),
+            Class::Reptile,
+            vec![String::from("bird"), String::from("snake")],
+            vec![String::from("mantids"), String::from("crickets")],
+        )
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub struct AnimalAlive {
     name: String,
@@ -124,46 +132,36 @@ impl AnimalAlive {
     }
 }
 
+pub mod animals_alive_models {
+    use super::*;
+    pub fn snake_female() -> AnimalAlive {
+        AnimalAlive::born("snake", Sex::Female)
+    }
+    pub fn snake_male() -> AnimalAlive {
+        AnimalAlive::born("snake", Sex::Male)
+    }
+    pub fn chameleon_male() -> AnimalAlive {
+        AnimalAlive::born("chameleon", Sex::Male)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
     use super::*;
-
-    #[derive(Default)]
-    struct TestLogger(Vec<String>);
-    impl Logger for TestLogger {
-        fn log(&mut self, value: String) {
-            self.0.push(value);
-        }
-    }
-
-    #[test]
-    fn test_name() {
-        let snake = AnimalAlive::born("snake", Sex::Female);
-        let name = snake.name();
-        assert_eq!(name, "snake");
-    }
+    use tests::animals_alive_models::snake_female;
+    use tests::animals_data_models::snake_data;
 
     #[test]
     fn test_class() {
-        let snake = AnimalData::new(
-            "snake",
-            Class::Reptile,
-            vec![String::from("eagle"), String::from("mongoose")],
-            vec![String::from("rat"), String::from("squirrel")],
-        );
+        let snake = snake_data();
         let class = snake.class();
         assert_eq!(class, &Class::Reptile);
     }
 
     #[test]
     fn test_predators() {
-        let snake = AnimalData::new(
-            "snake",
-            Class::Reptile,
-            vec![String::from("eagle"), String::from("mongoose")],
-            vec![String::from("rat"), String::from("squirrel")],
-        );
+        let snake = snake_data();
         let predators = snake.predators();
         assert_eq!(
             predators,
@@ -173,55 +171,35 @@ mod tests {
 
     #[test]
     fn test_predators_str() {
-        let snake = AnimalData::new(
-            "snake",
-            Class::Reptile,
-            vec![String::from("eagle"), String::from("mongoose")],
-            vec![String::from("rat"), String::from("squirrel")],
-        );
+        let snake = snake_data();
         assert_eq!(snake.predators_str(), "eagle-mongoose");
     }
 
     #[test]
     fn test_preys() {
-        let snake = AnimalData::new(
-            "snake",
-            Class::Reptile,
-            vec![String::from("eagle"), String::from("mongoose")],
-            vec![String::from("rat"), String::from("squirrel")],
-        );
+        let snake = snake_data();
         let preys = snake.preys();
         assert_eq!(preys, &vec![String::from("rat"), String::from("squirrel")])
     }
 
     #[test]
-    fn test_sex() {
-        let snake = AnimalAlive::born("snake", Sex::Female);
-        let snake_sex = snake.sex();
-        assert_eq!(snake_sex, &Sex::Female);
-    }
-
-    #[test]
     fn test_blood_type() {
-        let snake = AnimalData::new(
-            "snake",
-            Class::Reptile,
-            vec![String::from("eagle"), String::from("mongoose")],
-            vec![String::from("rat"), String::from("squirrel")],
-        );
+        let snake = snake_data();
         let snake_blood_type = snake.blood_type();
         assert_eq!(snake_blood_type, BloodType::Cold);
     }
 
     #[test]
-    fn test_born() {
-        let snake = AnimalAlive::born("snake", Sex::Female);
-        assert_eq!(
-            snake,
-            AnimalAlive {
-                name: String::from("snake"),
-                sex: Sex::Female,
-            }
-        )
+    fn test_name() {
+        let snake = snake_female();
+        let name = snake.name();
+        assert_eq!(name, "snake");
+    }
+
+    #[test]
+    fn test_sex() {
+        let snake = snake_female();
+        let snake_sex = snake.sex();
+        assert_eq!(snake_sex, &Sex::Female);
     }
 }
