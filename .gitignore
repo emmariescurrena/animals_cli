@@ -1,3 +1,8 @@
 debug/
 target/
 .vscode
+
+roadmap.md
+Cargo.lock
+animals_alive.csv
+animals_data.csv
