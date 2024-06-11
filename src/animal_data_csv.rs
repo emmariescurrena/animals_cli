@@ -13,8 +13,8 @@ impl AnimalData {
         [
             self.name(),
             self.class_str(),
-            self.preys_str(),
             self.predators_str(),
+            self.preys_str(),
         ]
     }
 }
