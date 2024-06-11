@@ -51,11 +51,11 @@ pub fn read_animal(animal_name: String) -> Result<String, Box<dyn Error>> {
 
     if let Some(animal_data) = reader.read_animal_data(animal_name.as_str())? {
         Ok(format!(
-            "Name: {}\nClass: {}\nPredators: {}\nPreys: {}",
+            "Name: {}\nClass: {}\nPredators: {:?}\nPreys: {:?}",
             animal_data.name,
             animal_data.class_str(),
-            animal_data.predators_str(),
-            animal_data.preys_str()
+            animal_data.predators,
+            animal_data.preys
         ))
     } else {
         Ok("Animal not found".to_string())

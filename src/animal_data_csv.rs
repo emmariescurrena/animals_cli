@@ -49,8 +49,8 @@ impl<R: std::io::Read + std::io::Seek> AnimalDataReader for CustomReader<R> {
                     "reptile" => Class::Reptile,
                     _ => return Err("Invalid class in csv".into()),
                 };
-                let preys = record[2].split('-').map(String::from).collect::<Vec<_>>();
-                let predators = record[3].split('-').map(String::from).collect::<Vec<_>>();
+                let predators = record[2].split('-').map(String::from).collect::<Vec<_>>();
+                let preys = record[3].split('-').map(String::from).collect::<Vec<_>>();
                 let animal = AnimalData::new(animal_name.to_string(), class, predators, preys);
                 self.inner.seek(Position::new())?;
                 return Ok(Some(animal));
